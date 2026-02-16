@@ -642,9 +642,11 @@
         // --- PWA INSTALL LOGIC ---
         let deferredPrompt;
 
-        // Register Service Worker
+        // Register Service Worker for PWA Offline & Install
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
+                // We register sw.js for caching/installability.
+                // Firebase uses firebase-messaging-sw.js automatically for background push notifications.
                 navigator.serviceWorker.register('./sw.js')
                     .then(reg => console.log('SW Registered', reg))
                     .catch(err => console.log('SW Failed', err));
@@ -682,6 +684,8 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, onSnapshot, updateDoc, deleteDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // --- NEW: MESSAGING IMPORTS ---
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
         // CONFIG
         const firebaseConfig = {
@@ -697,6 +701,11 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        // --- NEW: MESSAGING SETUP ---
+        const messaging = getMessaging(app);
+        // !!! IMPORTANT: Generate Key Pair in Firebase Console -> Project Settings -> Cloud Messaging -> Web Config !!!
+        const VAPID_KEY = "BJmkLm3B28vewojhpd_0u-888aFTnhiGtGLNE8V9xH-RhS69O8B7exOqi5DeWx4DififfffYXpTa1JopjWImJf8"; 
 
         // GARO HILLS DATA
         const garoHillsData = {
@@ -718,6 +727,48 @@
 
         let userDistrict = null;
         let userPincode = null;
+
+        // --- NEW: NOTIFICATION PERMISSION LOGIC ---
+        window.setupNotifications = async () => {
+            if (Notification.permission === "granted") {
+                await saveToken();
+            } else if (Notification.permission !== "denied") {
+                const permission = await Notification.requestPermission();
+                if (permission === "granted") {
+                    await saveToken();
+                }
+            }
+        };
+
+        async function saveToken() {
+            try {
+                // Get the token using VAPID key
+                const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+                if (currentToken) {
+                    // Update user doc with token
+                    if(auth.currentUser) {
+                        await updateDoc(doc(db, "users", auth.currentUser.uid), {
+                            fcmToken: currentToken
+                        });
+                        console.log("FCM Token saved");
+                    }
+                } else {
+                    console.log('No registration token available. Request permission to generate one.');
+                }
+            } catch (err) {
+                console.log('An error occurred while retrieving token. ', err);
+            }
+        }
+
+        // LISTEN FOR FOREGROUND MESSAGES
+        onMessage(messaging, (payload) => {
+            console.log('Message received. ', payload);
+            // Show custom alert when app is open
+            const title = payload.notification.title || "Notification";
+            const body = payload.notification.body || "You have a new update.";
+            showCustomAlert(body, title);
+        });
+        // ----------------------------------------
 
         // POPULATE DROPDOWNS
         window.updatePincodes = (prefix) => {
@@ -857,6 +908,8 @@
                         if (data.role === 'driver') {
                             document.getElementById('driverScreen').classList.remove('hidden');
                             switchDriverTab('home'); 
+                            // --- NEW: ASK DRIVER FOR NOTIFICATION PERMISSION ---
+                            setupNotifications(); 
                         } else {
                             document.getElementById('passengerScreen').classList.remove('hidden');
                             subscribeToTrips(); 
