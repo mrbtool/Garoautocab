@@ -1,7 +1,7 @@
 const CACHE_NAME = 'rickshaw-go-v1';
 const urlsToCache = [
   './index.html',
-  './garo.png',
+  './https://github.com/mrbtool/Garoautocab/blob/main/grok_image_1771136820619~2.jpg',
   './manifest.json'
 ];
 
