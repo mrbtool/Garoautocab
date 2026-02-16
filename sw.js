@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rickshaw-go-v1';
+const CACHE_NAME = 'rickshaw-go-v2';
 const urlsToCache = [
   './index.html',
   './https://github.com/mrbtool/Garoautocab/blob/main/grok_image_1771136820619~2.jpg',
