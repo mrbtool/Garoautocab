@@ -46,8 +46,9 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         /* --- PWA INSTALL BUTTON STYLES --- */
+        /* 1. Large Button for Auth/Drawer */
         .install-btn-container {
-            display: none; /* Hidden by default, shown via JS */
+            display: none; /* Hidden by default */
             margin: 10px 0;
             padding: 0 20px;
         }
@@ -66,10 +67,26 @@
             cursor: pointer;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
-        .btn-install-app img {
-            width: 24px;
-            height: 24px;
-            border-radius: 5px;
+        .btn-install-app img { width: 24px; height: 24px; border-radius: 5px; }
+
+        /* 2. Small Header Button (NEW) */
+        .header-install-btn {
+            display: none; /* Hidden by default */
+            width: 35px; height: 35px;
+            background: var(--dark);
+            color: var(--primary);
+            border-radius: 50%;
+            align-items: center; justify-content: center;
+            margin-right: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
         }
 
         /* --- CUSTOM DIALOG ALERT --- */
@@ -143,6 +160,9 @@
         }
         .menu-btn { font-size: 20px; color: var(--dark); cursor: pointer; }
         .app-title { font-weight: 800; color: var(--dark); font-size: 18px; }
+        
+        .header-right { display: flex; align-items: center; } /* Wrapper for right side icons */
+        
         .location-icon-btn {
             min-width: 35px; height: 35px; background: rgba(255, 193, 7, 0.2);
             color: #d39e00; border-radius: 20px; display: flex; padding: 0 10px;
@@ -271,14 +291,12 @@
         }
         .details-overlay.active { transform: translateX(0); }
         
-        /* UPDATED: Dynamic Map/Image Background */
         .details-map { 
             height: 35%; 
             background-color: #ddd; 
             background-position: center; 
             background-size: cover; 
             position: relative; 
-            /* Default fallback */
             background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/OpenStreetMap_Logo_2011.svg/1200px-OpenStreetMap_Logo_2011.svg.png');
         }
 
@@ -407,7 +425,15 @@
             <div class="header" style="background:var(--dark); color:var(--primary);">
                 <div class="menu-btn" style="color:white;" onclick="openDrawer()"><i class="fas fa-bars"></i></div>
                 <div class="app-title" style="color:white;">Driver<span style="color:var(--primary)">Board</span></div>
-                <div class="location-icon-btn" id="driver-loc-display"><i class="fas fa-map-marker-alt"></i> ...</div>
+                
+                <!-- NEW: HEADER RIGHT (Install Btn + Location) -->
+                <div class="header-right">
+                    <!-- HEADER INSTALL BUTTON -->
+                    <div id="driver-install-btn" class="header-install-btn" onclick="triggerInstall()" style="background:var(--primary); color:var(--dark);">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="location-icon-btn" id="driver-loc-display"><i class="fas fa-map-marker-alt"></i> ...</div>
+                </div>
             </div>
             
             <div class="content-area">
@@ -481,7 +507,15 @@
             <div class="header">
                 <div class="menu-btn" onclick="openDrawer()"><i class="fas fa-bars"></i></div>
                 <div class="app-title">Rickshaw<span style="color:var(--primary)">Go</span></div>
-                <div class="location-icon-btn" id="passenger-loc-display"><i class="fas fa-map-marker-alt"></i> ...</div>
+                
+                <!-- NEW: HEADER RIGHT (Install Btn + Location) -->
+                <div class="header-right">
+                    <!-- HEADER INSTALL BUTTON -->
+                    <div id="passenger-install-btn" class="header-install-btn" onclick="triggerInstall()">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="location-icon-btn" id="passenger-loc-display"><i class="fas fa-map-marker-alt"></i> ...</div>
+                </div>
             </div>
 
             <div class="content-area">
@@ -657,8 +691,11 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            // Show Install Buttons
+            // Show Install Buttons in Auth & Drawer
             document.querySelectorAll('.install-btn-container').forEach(el => el.style.display = 'block');
+            
+            // Show Header Install Buttons (NEW)
+            document.querySelectorAll('.header-install-btn').forEach(el => el.style.display = 'flex');
         });
 
         // Trigger Install
@@ -669,6 +706,7 @@
                 if (outcome === 'accepted') {
                     deferredPrompt = null;
                     document.querySelectorAll('.install-btn-container').forEach(el => el.style.display = 'none');
+                    document.querySelectorAll('.header-install-btn').forEach(el => el.style.display = 'none');
                 }
             }
         }
@@ -676,6 +714,7 @@
         // Hide button if app is installed
         window.addEventListener('appinstalled', () => {
             document.querySelectorAll('.install-btn-container').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.header-install-btn').forEach(el => el.style.display = 'none');
             console.log('App Installed');
         });
     </script>
