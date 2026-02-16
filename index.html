@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#FFC107">
+    <title>RickshawGo - Garo Hills</title>
+    
+    <!-- PWA MANIFEST LINK -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="garo.png">
+    <link rel="apple-touch-icon" href="garo.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* --- VARIABLES --- */
+        :root {
+            --primary: #FFC107;
+            --primary-dark: #e0a800;
+            --dark: #212529;
+            --grey: #6c757d;
+            --light: #f8f9fa;
+            --white: #ffffff;
+            --shadow: 0 8px 20px rgba(0,0,0,0.08);
+            --danger: #dc3545;
+            --success: #28a745;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: #333;
+            display: flex; justify-content: center; height: 100vh; overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%; max-width: 414px; height: 100%;
+            background-color: #f4f6f8; position: relative;
+            overflow: hidden; display: flex; flex-direction: column;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        /* --- UTILITY --- */
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- PWA INSTALL BUTTON STYLES --- */
+        .install-btn-container {
+            display: none; /* Hidden by default, shown via JS */
+            margin: 10px 0;
+            padding: 0 20px;
+        }
+        .btn-install-app {
+            width: 100%;
+            background: linear-gradient(45deg, var(--dark), #444);
+            color: var(--primary);
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .btn-install-app img {
+            width: 24px;
+            height: 24px;
+            border-radius: 5px;
+        }
+
+        /* --- CUSTOM DIALOG ALERT --- */
+        .dialog-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 2000;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: 0.2s;
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .dialog-box {
+            background: white; padding: 25px; border-radius: 15px; width: 85%; max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: scale(0.9); transition: 0.2s;
+            text-align: center; display: flex; flex-direction: column; align-items: center;
+        }
+        .dialog-overlay.active .dialog-box { transform: scale(1); }
+        .dialog-icon { font-size: 40px; color: var(--primary); margin-bottom: 15px; }
+        .dialog-title { font-size: 18px; font-weight: 700; color: var(--dark); margin-bottom: 10px; }
+        .dialog-msg { font-size: 14px; color: #666; margin-bottom: 20px; line-height: 1.4; }
+        .dialog-btn-row { display: flex; gap: 10px; width: 100%; }
+        .dialog-btn {
+            flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 13px;
+        }
+        .btn-dialog-confirm { background: var(--dark); color: var(--primary); }
+        .btn-dialog-cancel { background: #eee; color: #333; }
+
+        /* --- AUTH SCREEN --- */
+        .auth-screen {
+            width: 100%; height: 100%; background: var(--dark);
+            z-index: 200; position: absolute; display: flex; flex-direction: column;
+            padding: 20px; justify-content: center; overflow-y: auto;
+        }
+        .role-switch-container {
+            background: rgba(255,255,255,0.1); border-radius: 50px; padding: 5px;
+            display: flex; margin-bottom: 20px; flex-shrink: 0;
+        }
+        .role-btn {
+            flex: 1; padding: 12px; border-radius: 40px; text-align: center;
+            color: #aaa; cursor: pointer; font-weight: 600; transition: 0.3s;
+        }
+        .role-btn.active { color: var(--dark); background: var(--primary); }
+        .auth-card { background: var(--white); border-radius: 20px; padding: 30px 25px; margin-bottom: 20px; }
+        .auth-input, .auth-select {
+            width: 100%; padding: 12px 15px; border: 1px solid #ddd;
+            border-radius: 10px; margin-bottom: 15px; outline: none; background: white;
+            font-size: 14px;
+        }
+        .action-btn {
+            width: 100%; padding: 14px; background: var(--dark); color: var(--primary);
+            border: none; border-radius: 10px; font-weight: bold; cursor: pointer;
+        }
+        .google-btn {
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            margin-top: 15px; cursor: pointer; background: white;
+        }
+
+        /* --- SCREENS --- */
+        .driver-screen, .passenger-screen, .history-screen, .settings-screen {
+            width: 100%; height: 100%; display: flex; flex-direction: column;
+            position: absolute; top: 0; background: #f4f6f8; z-index: 100;
+        }
+        .history-screen, .settings-screen { z-index: 110; background: white; transform: translateX(100%); transition: 0.3s; }
+        .history-screen.active, .settings-screen.active { transform: translateX(0); }
+
+        /* Header */
+        .header {
+            padding: 15px 20px; background: var(--white); display: flex;
+            justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 10;
+        }
+        .menu-btn { font-size: 20px; color: var(--dark); cursor: pointer; }
+        .app-title { font-weight: 800; color: var(--dark); font-size: 18px; }
+        .location-icon-btn {
+            min-width: 35px; height: 35px; background: rgba(255, 193, 7, 0.2);
+            color: #d39e00; border-radius: 20px; display: flex; padding: 0 10px;
+            align-items: center; justify-content: center; font-size: 11px; font-weight: bold; gap: 5px;
+        }
+
+        /* Content */
+        .content-area { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 90px; }
+        .content-area::-webkit-scrollbar { display: none; }
+
+        /* --- TRIP CARD LAYOUT --- */
+        .trip-layout-card {
+            background: var(--white); border-radius: 16px; padding: 20px;
+            margin-bottom: 15px; box-shadow: var(--shadow); cursor: pointer;
+            transition: 0.2s; position: relative; border-left: 5px solid var(--primary);
+        }
+        .trip-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 15px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;
+        }
+        .trip-driver-box { display: flex; gap: 12px; align-items: center; }
+        .trip-avatar {
+            width: 45px; height: 45px; background: #212529; color: var(--primary);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;
+            overflow: hidden;
+        }
+        .trip-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        .trip-name { font-weight: 700; color: var(--dark); font-size: 15px; }
+        .trip-vehicle { font-size: 11px; color: #666; background: #eee; padding: 2px 6px; border-radius: 4px; margin-top: 3px; display: inline-block; }
+        .trip-price { text-align: right; }
+        .trip-amount { font-size: 18px; font-weight: 800; color: var(--dark); }
+        .trip-est { font-size: 10px; color: #888; text-transform: uppercase; }
+        .trip-route { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .route-icon { color: var(--success); font-size: 12px; }
+        .route-text { font-size: 14px; font-weight: 500; color: #444; }
+        .trip-footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #777; }
+        .trip-time { display: flex; align-items: center; gap: 5px; }
+
+        /* --- BOTTOM NAV --- */
+        .bottom-nav {
+            position: absolute; bottom: 0; width: 100%; height: 70px;
+            background: var(--white); display: flex; justify-content: space-around;
+            align-items: center; border-top: 1px solid #eee; z-index: 20;
+        }
+        .nav-btn { display: flex; flex-direction: column; align-items: center; color: var(--grey); font-size: 11px; cursor: pointer; flex: 1; }
+        .nav-btn.active { color: var(--dark); font-weight: bold; }
+        .nav-btn i { font-size: 20px; margin-bottom: 4px; }
+        .nav-btn.active i { color: var(--primary); }
+
+        /* --- FAB --- */
+        .fab-btn {
+            position: absolute; bottom: 90px; right: 20px;
+            width: 55px; height: 55px; background: var(--primary);
+            color: var(--dark); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+            cursor: pointer; z-index: 90; transition: transform 0.2s;
+        }
+        .fab-btn:active { transform: scale(0.9); }
+
+        /* --- MODALS --- */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 250;
+            display: flex; align-items: flex-end;
+            visibility: hidden; opacity: 0; transition: 0.3s;
+        }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal-card {
+            width: 100%; background: white; border-radius: 20px 20px 0 0;
+            padding: 25px; transform: translateY(100%); transition: transform 0.3s;
+            max-height: 90%; overflow-y: auto;
+        }
+        .modal-overlay.active .modal-card { transform: translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-modal { font-size: 20px; cursor: pointer; color: #888; }
+        
+        /* Vehicle Upload Styles */
+        .vehicle-upload-box {
+            width: 100%; height: 140px; border: 2px dashed #ddd; border-radius: 12px;
+            margin-bottom: 20px; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; cursor: pointer;
+            background: #fafafa; position: relative; overflow: hidden;
+        }
+        .vehicle-upload-box img { width: 100%; height: 100%; object-fit: cover; position: absolute; }
+        .vehicle-upload-label { z-index: 2; text-align: center; color: #888; font-size: 13px; }
+        .vehicle-upload-label i { font-size: 24px; margin-bottom: 8px; color: var(--dark); }
+
+        /* --- DRAWER --- */
+        .drawer-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 150; opacity: 0; visibility: hidden; transition: 0.3s;
+        }
+        .drawer-overlay.active { opacity: 1; visibility: visible; }
+        .nav-drawer {
+            position: absolute; top: 0; left: 0; width: 80%; height: 100%;
+            background: var(--white); z-index: 160; transform: translateX(-100%);
+            transition: transform 0.3s; display: flex; flex-direction: column;
+        }
+        .nav-drawer.active { transform: translateX(0); }
+        .drawer-profile { background: var(--dark); color: white; padding: 40px 20px 30px 20px; }
+        .menu-item {
+            display: flex; align-items: center; padding: 15px 20px;
+            color: var(--dark); font-size: 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        }
+        .menu-item i { width: 35px; color: var(--grey); font-size: 18px; }
+        
+        .profile-img-container {
+            width: 70px; height: 70px; border-radius: 50%; 
+            border: 3px solid var(--primary); overflow: hidden;
+            background: #555; margin-right: 15px;
+        }
+        .profile-img-display { width: 100%; height: 100%; object-fit: cover; }
+
+        /* --- SETTINGS SCREEN --- */
+        .settings-upload-box { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
+        .settings-img-preview { width: 100px; height: 100px; border-radius: 50%; background: #eee; border: 3px solid var(--primary); object-fit: cover; margin-bottom: 15px; }
+        .upload-btn { background: var(--dark); color: white; padding: 8px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        
+        /* --- DETAILS OVERLAY --- */
+        .details-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 140; transform: translateX(100%);
+            transition: 0.3s; display: flex; flex-direction: column;
+        }
+        .details-overlay.active { transform: translateX(0); }
+        
+        /* UPDATED: Dynamic Map/Image Background */
+        .details-map { 
+            height: 35%; 
+            background-color: #ddd; 
+            background-position: center; 
+            background-size: cover; 
+            position: relative; 
+            /* Default fallback */
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/OpenStreetMap_Logo_2011.svg/1200px-OpenStreetMap_Logo_2011.svg.png');
+        }
+
+        .back-btn-float {
+            position: absolute; top: 20px; left: 20px; width: 40px; height: 40px;
+            background: white; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 10;
+        }
+        .details-body { flex: 1; padding: 25px; border-radius: 25px 25px 0 0; background: white; margin-top: -20px; position: relative; display: flex; flex-direction: column; z-index: 5; }
+        
+        .dt-header-row { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .dt-driver-img { width: 60px; height: 60px; border-radius: 50%; border: 3px solid var(--primary); object-fit: cover; background: #eee; }
+        
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .info-box { background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center; }
+        .info-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .info-val { font-size: 14px; font-weight: 700; color: var(--dark); margin-top: 5px; }
+        
+        .details-actions { margin-top: auto; display: flex; gap: 15px; }
+        .btn-call { width: 60px; height: 50px; background: #28a745; color: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; text-decoration: none; box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3); }
+        .btn-book { flex: 1; height: 50px; background: var(--dark); color: var(--primary); border: none; border-radius: 12px; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .btn-cancel { flex: 1; height: 50px; background: var(--danger); color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3); }
+
+        /* Loader */
+        #loader {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.8); z-index: 999;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary); border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- LOADER -->
+        <div id="loader" class="hidden"><div class="spinner"></div></div>
+
+        <!-- CUSTOM DIALOG -->
+        <div id="customDialog" class="dialog-overlay">
+            <div class="dialog-box">
+                <i class="fas fa-bell dialog-icon" id="dialog-icon"></i>
+                <div class="dialog-title" id="dialog-title">Alert</div>
+                <div class="dialog-msg" id="dialog-msg">Message goes here</div>
+                <div class="dialog-btn-row">
+                    <button id="dialog-btn-cancel" class="dialog-btn btn-dialog-cancel" style="display:none;">Cancel</button>
+                    <button id="dialog-btn-confirm" class="dialog-btn btn-dialog-confirm">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- === 1. AUTH SCREEN === -->
+        <div id="authScreen" class="auth-screen">
+            <div style="text-align: center; margin-bottom: 20px; color: white;">
+                <!-- PWA Install Button for Auth Screen -->
+                <div id="auth-install-container" class="install-btn-container">
+                    <button class="btn-install-app" onclick="triggerInstall()">
+                        <img src="garo.png" alt="Icon"> Install App
+                    </button>
+                </div>
+
+                <h1 style="font-weight: 800; letter-spacing: -1px; margin-top: 15px;">Rickshaw<span style="color:var(--primary)">Go</span></h1>
+                <p style="font-size:12px; opacity:0.8;">Garo Hills Edition</p>
+            </div>
+
+            <div class="role-switch-container">
+                <div id="tab-passenger" class="role-btn active" onclick="switchRoleTab('passenger')">
+                    <i class="fas fa-user"></i> Passenger
+                </div>
+                <div id="tab-driver" class="role-btn" onclick="switchRoleTab('driver')">
+                    <i class="fas fa-taxi"></i> Driver
+                </div>
+            </div>
+
+            <div class="auth-card">
+                <h2 id="auth-title-text" style="text-align:center; margin-bottom:20px;">Welcome Back</h2>
+                <form onsubmit="handleAuth(event)">
+                    <input type="email" id="email" class="auth-input" placeholder="Email Address" required>
+                    <input type="password" id="password" class="auth-input" placeholder="Password" required>
+                    
+                    <div id="auth-location-fields" class="hidden">
+                        <select id="reg-district" class="auth-select" onchange="updatePincodes('reg')">
+                            <option value="">Select District</option>
+                        </select>
+                        <select id="reg-pincode" class="auth-select">
+                            <option value="">Select Pincode</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="main-auth-btn" class="action-btn">LOGIN</button>
+                </form>
+                <div class="google-btn" onclick="handleGoogleSignIn()">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" alt="G">
+                    Continue with Google
+                </div>
+                <div style="text-align:center; margin-top:20px; font-size:13px;">
+                    <span id="toggle-link" style="color:var(--dark); font-weight:bold; cursor:pointer; text-decoration:underline;" onclick="toggleAuthMode()">Create New Account</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- === LOCATION SETUP MODAL === -->
+        <div id="locationSetupModal" class="modal-overlay" style="z-index:2000;">
+            <div class="modal-card">
+                <h3 style="margin-bottom:10px;">Setup Location</h3>
+                <p style="font-size:12px; color:grey; margin-bottom:20px;">Please select your district to see relevant trips.</p>
+                <select id="setup-district" class="auth-select" onchange="updatePincodes('setup')">
+                    <option value="">Select District</option>
+                </select>
+                <select id="setup-pincode" class="auth-select">
+                    <option value="">Select Pincode</option>
+                </select>
+                <button onclick="saveUserLocation()" class="action-btn">CONTINUE</button>
+            </div>
+        </div>
+
+        <!-- === 2. DRIVER DASHBOARD === -->
+        <div id="driverScreen" class="driver-screen hidden">
+            <div class="header" style="background:var(--dark); color:var(--primary);">
+                <div class="menu-btn" style="color:white;" onclick="openDrawer()"><i class="fas fa-bars"></i></div>
+                <div class="app-title" style="color:white;">Driver<span style="color:var(--primary)">Board</span></div>
+                <div class="location-icon-btn" id="driver-loc-display"><i class="fas fa-map-marker-alt"></i> ...</div>
+            </div>
+            
+            <div class="content-area">
+                <div id="drv-home" class="fade-in">
+                    <h3 style="margin-bottom:15px; padding-left:5px;">My Trips</h3>
+                    <div id="drv-home-list"></div>
+                    <div class="fab-btn" onclick="openAddTripModal()"><i class="fas fa-plus"></i></div>
+                </div>
+
+                <div id="drv-passengers" class="hidden fade-in">
+                    <h3 style="margin-bottom:15px; padding-left:5px;">Active Bookings</h3>
+                    <div class="info-box" style="margin-bottom:15px; background:#e3f2fd; border:1px solid #90caf9;">
+                        <i class="fas fa-info-circle"></i> Showing passengers who booked your active trips.
+                    </div>
+                    <div id="drv-booking-list"></div>
+                </div>
+            </div>
+
+            <div class="bottom-nav">
+                <div id="nav-d-home" class="nav-btn active" onclick="switchDriverTab('home')">
+                    <i class="fas fa-home"></i> Home
+                </div>
+                <div id="nav-d-passengers" class="nav-btn" onclick="switchDriverTab('passengers')">
+                    <i class="fas fa-users"></i> Bookings
+                </div>
+            </div>
+
+            <!-- Add/Edit Trip Modal -->
+            <div id="addTripModal" class="modal-overlay">
+                <div class="modal-card">
+                    <div class="modal-header">
+                        <h3 id="modal-title">Publish New Trip</h3>
+                        <div class="close-modal" onclick="closeAddTripModal()"><i class="fas fa-times"></i></div>
+                    </div>
+                    <form onsubmit="publishDriverTrip(event)">
+                        <input type="hidden" id="d-trip-id"> 
+                        
+                        <!-- VEHICLE IMAGE UPLOAD (COMPRESSED) -->
+                        <label class="vehicle-upload-box">
+                            <input type="file" hidden accept="image/*" onchange="handleCompressedUpload(event, 'vehicle')">
+                            <div class="vehicle-upload-label">
+                                <i class="fas fa-car-side"></i><br>
+                                Tap to upload Vehicle Photo<br>
+                                <span style="font-size:10px; color:#aaa;">(Auto-compressed &lt;50kb)</span>
+                            </div>
+                            <img id="d-vehicle-preview" class="hidden" src="">
+                        </label>
+
+                        <input type="tel" id="d-phone" class="auth-input" placeholder="Your Phone Number" required>
+                        <input type="text" id="d-number" class="auth-input" placeholder="Vehicle Number (KA-01...)" required>
+                        <input type="text" id="d-location" class="auth-input" placeholder="Current Location (e.g., Tura Bazaar)" required>
+                        
+                        <div style="display:flex; gap:10px;">
+                            <select id="d-price-type" class="auth-select" style="flex:1;">
+                                <option value="fixed">Fixed Price (₹)</option>
+                                <option value="per_km">Per Km (₹)</option>
+                                <option value="per_min">Per Min (₹)</option>
+                            </select>
+                            <input type="number" id="d-price" class="auth-input" style="flex:1;" placeholder="Amount">
+                        </div>
+                        <p style="font-size:11px; color:grey; margin-bottom:15px; margin-top:-10px;">Leave blank for Negotiable.</p>
+
+                        <button type="submit" class="action-btn"><i class="fas fa-paper-plane"></i> <span id="modal-btn-text">PUBLISH</span></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- === 3. PASSENGER HOME === -->
+        <div id="passengerScreen" class="passenger-screen hidden">
+            <div class="header">
+                <div class="menu-btn" onclick="openDrawer()"><i class="fas fa-bars"></i></div>
+                <div class="app-title">Rickshaw<span style="color:var(--primary)">Go</span></div>
+                <div class="location-icon-btn" id="passenger-loc-display"><i class="fas fa-map-marker-alt"></i> ...</div>
+            </div>
+
+            <div class="content-area">
+                <div style="background: linear-gradient(135deg, #212529, #343a40); padding: 20px; border-radius: 15px; color: white; margin-bottom: 25px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-size:12px; color:var(--primary);">NEW OFFER</div>
+                        <h2 style="font-size:18px;">Get 50% Off</h2>
+                        <p style="font-size:11px; opacity:0.7;">On your first 3 EV rides</p>
+                    </div>
+                    <i class="fas fa-bolt" style="font-size:40px; color:var(--primary); opacity:0.8;"></i>
+                </div>
+
+                <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <div style="font-size: 16px; font-weight: 700; color: var(--dark);">Available Rickshaws</div>
+                    <div style="font-size:11px; color:grey;"><i class="fas fa-sync-alt"></i> Live</div>
+                </div>
+
+                <div id="trip-list-container">
+                    <p style="text-align:center; color:gray; font-size:12px; margin-top:20px;">Scanning for drivers...</p>
+                </div>
+            </div>
+
+            <div class="bottom-nav">
+                <div class="nav-btn active" onclick="closeHistoryScreen()"><i class="fas fa-home"></i> Home</div>
+                <div class="nav-btn"><i class="fas fa-compass"></i> Explore</div>
+                <div class="nav-btn" onclick="openHistoryScreen()"><i class="fas fa-clipboard-list"></i> Activity</div>
+            </div>
+        </div>
+
+        <!-- === 4. SETTINGS SCREEN === -->
+        <div id="settingsScreen" class="settings-screen">
+            <div class="header">
+                <div class="menu-btn" onclick="closeSettingsScreen()"><i class="fas fa-arrow-left"></i></div>
+                <div class="app-title">Profile Settings</div>
+                <div style="width:35px;"></div>
+            </div>
+            
+            <div class="content-area" style="padding: 25px;">
+                <h3 style="margin-bottom: 20px; text-align: center;">Edit Profile</h3>
+                
+                <div class="settings-upload-box">
+                    <img id="settings-preview-img" src="" class="settings-img-preview" alt="Profile">
+                    <label class="upload-btn">
+                        <i class="fas fa-camera"></i> Change Photo
+                        <!-- UPDATED: Use Generic Compress Function -->
+                        <input type="file" id="imageInput" accept="image/*" hidden onchange="handleCompressedUpload(event, 'profile')">
+                    </label>
+                </div>
+
+                <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow);">
+                    <label class="info-label">YOUR NAME</label>
+                    <input type="text" id="settings-name-input" class="auth-input" style="margin-top:5px;" placeholder="Enter your name">
+                    
+                    <label class="info-label" style="display:block; margin-top:10px;">LOCATION</label>
+                    <div style="display:flex; gap:10px; margin-top:5px;">
+                         <select id="set-district" class="auth-select" onchange="updatePincodes('set')">
+                            <option value="">Select District</option>
+                        </select>
+                        <select id="set-pincode" class="auth-select">
+                            <option value="">Select Pincode</option>
+                        </select>
+                    </div>
+
+                    <label class="info-label" style="display:block; margin-top:10px;">ACCOUNT EMAIL</label>
+                    <div id="settings-email" style="padding:12px; background:#f8f9fa; border-radius:10px; color:grey; font-size:14px; margin-top:5px; margin-bottom:20px;">user@example.com</div>
+
+                    <button class="action-btn" onclick="saveProfileSettings()">SAVE CHANGES</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- === 5. HISTORY SCREEN === -->
+        <div id="historyScreen" class="history-screen">
+            <div class="header">
+                <div class="menu-btn" onclick="closeHistoryScreen()"><i class="fas fa-arrow-left"></i></div>
+                <div class="app-title">Trip History</div>
+                <div style="width:35px;"></div>
+            </div>
+            <div class="content-area" id="history-list-container"></div>
+        </div>
+
+        <!-- === DRAWER === -->
+        <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+        <div class="nav-drawer" id="navDrawer">
+            <div class="drawer-profile">
+                <div class="profile-row" style="display:flex; gap:15px; align-items:center;">
+                    <div class="profile-img-container">
+                        <img id="drawer-profile-img" class="profile-img-display" src="https://via.placeholder.com/100">
+                    </div>
+                    <div>
+                        <h3 id="drawer-user-name" style="font-size:16px;">User</h3>
+                        <p id="drawer-user-email" style="font-size:11px; opacity:0.7;">user@example.com</p>
+                        <p id="drawer-user-loc" style="font-size:10px; opacity:0.7; margin-top:3px;"><i class="fas fa-map-marker-alt"></i> Location</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- INSTALL BUTTON IN DRAWER -->
+            <div id="drawer-install-container" class="install-btn-container" style="border-bottom: 1px solid #f0f0f0; padding-bottom:15px; margin-bottom:10px;">
+                <button class="btn-install-app" onclick="triggerInstall()">
+                    <img src="garo.png" alt="Icon"> Install App
+                </button>
+            </div>
+
+            <div style="padding: 20px;">
+                <div class="menu-item" onclick="handleDrawerHistoryClick()"><i class="fas fa-history"></i> Your Rides</div>
+                <div class="menu-item" onclick="openSettingsScreen(); closeDrawer();"><i class="fas fa-user-edit"></i> Edit Profile</div>
+                <div class="menu-item"><i class="fas fa-headset"></i> Support</div>
+                <div class="menu-item" onclick="logoutUser()" style="color: #dc3545; border:none; margin-top:20px;">
+                    <i class="fas fa-sign-out-alt" style="color:#dc3545;"></i> Logout
+                </div>
+            </div>
+        </div>
+
+        <!-- === DETAILS OVERLAY === -->
+        <div class="details-overlay" id="detailsScreen">
+            <!-- Top Map/Image Area -->
+            <div class="details-map" id="details-top-img">
+                <div class="back-btn-float" onclick="closeDetails()"><i class="fas fa-arrow-left"></i></div>
+            </div>
+            <div class="details-body">
+                
+                <div class="dt-header-row">
+                    <img id="dt-driver-img" src="https://via.placeholder.com/100" class="dt-driver-img">
+                    <div style="flex:1;">
+                        <h2 id="dt-name" style="margin:0; font-size:18px;">Driver Name</h2>
+                        <p style="color:grey; font-size:12px;">Verified • <i class="fas fa-star" style="color:orange;"></i> 4.8</p>
+                    </div>
+                    <h2 id="dt-price" style="margin:0; color:var(--dark); font-size:18px;">₹0</h2>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-box">
+                        <div class="info-label">Vehicle No</div>
+                        <div class="info-val" id="dt-vehicle">KA--</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Vehicle Type</div>
+                        <div class="info-val">Auto Rickshaw</div>
+                    </div>
+                </div>
+
+                <div style="margin-top:20px; padding:15px; border-radius:10px; border:1px solid #eee;">
+                    <div class="info-label">CURRENT LOCATION</div>
+                    <div class="info-val" id="dt-loc" style="font-size:16px; display:flex; align-items:center; gap:10px;">
+                        <i class="fas fa-map-pin" style="color:var(--danger);"></i> <span>...</span>
+                    </div>
+                </div>
+
+                <div class="details-actions" id="details-action-area"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- === JAVASCRIPT === -->
+    <script>
+        // --- PWA INSTALL LOGIC ---
+        let deferredPrompt;
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW Registered', reg))
+                    .catch(err => console.log('SW Failed', err));
+            });
+        }
+
+        // Listen for install prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Show Install Buttons
+            document.querySelectorAll('.install-btn-container').forEach(el => el.style.display = 'block');
+        });
+
+        // Trigger Install
+        async function triggerInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    deferredPrompt = null;
+                    document.querySelectorAll('.install-btn-container').forEach(el => el.style.display = 'none');
+                }
+            }
+        }
+
+        // Hide button if app is installed
+        window.addEventListener('appinstalled', () => {
+            document.querySelectorAll('.install-btn-container').forEach(el => el.style.display = 'none');
+            console.log('App Installed');
+        });
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, onSnapshot, updateDoc, deleteDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdHRVDb7x_QDujZLmH4uuE2tqLOD5eziE",
+            authDomain: "achik-travel.firebaseapp.com",
+            projectId: "achik-travel",
+            storageBucket: "achik-travel.firebasestorage.app",
+            messagingSenderId: "463823387447",
+            appId: "1:463823387447:web:332f1f3dba246f0ecb78b2",
+            measurementId: "G-KB51NKQYTP"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // GARO HILLS DATA
+        const garoHillsData = {
+            "West Garo Hills": ["794001", "794002", "794003", "794004", "794005", "794104", "794105", "794109", "794115"],
+            "East Garo Hills": ["794111", "794110", "794112"],
+            "South Garo Hills": ["794102", "794103", "794114"],
+            "North Garo Hills": ["794108", "794113"],
+            "South West Garo Hills": ["794115", "794106", "794107"]
+        };
+
+        // STATE
+        let currentRole = 'passenger';
+        let isLoginMode = true;
+        let selectedTripData = null; 
+        
+        // Image Temp Vars
+        let tempProfileBase64 = null; 
+        let tempVehicleBase64 = null;
+
+        let userDistrict = null;
+        let userPincode = null;
+
+        // POPULATE DROPDOWNS
+        window.updatePincodes = (prefix) => {
+            const districtSel = document.getElementById(`${prefix}-district`);
+            const pincodeSel = document.getElementById(`${prefix}-pincode`);
+            const district = districtSel.value;
+            
+            pincodeSel.innerHTML = '<option value="">Select Pincode</option>';
+            
+            if(district && garoHillsData[district]) {
+                garoHillsData[district].forEach(pin => {
+                    pincodeSel.innerHTML += `<option value="${pin}">${pin}</option>`;
+                });
+            }
+        };
+
+        function initDropdowns() {
+            const prefixes = ['reg', 'setup', 'set']; 
+            prefixes.forEach(pre => {
+                const el = document.getElementById(`${pre}-district`);
+                if(el) {
+                    el.innerHTML = '<option value="">Select District</option>';
+                    Object.keys(garoHillsData).forEach(d => {
+                        el.innerHTML += `<option value="${d}">${d}</option>`;
+                    });
+                }
+            });
+        }
+        initDropdowns();
+
+        // --- AUTH LOGIC ---
+        window.switchRoleTab = (role) => {
+            currentRole = role;
+            document.getElementById('tab-passenger').classList.toggle('active', role === 'passenger');
+            document.getElementById('tab-driver').classList.toggle('active', role === 'driver');
+        };
+
+        window.toggleAuthMode = () => {
+            isLoginMode = !isLoginMode;
+            document.getElementById('main-auth-btn').innerText = isLoginMode ? "LOGIN" : "REGISTER";
+            document.getElementById('auth-title-text').innerText = isLoginMode ? "Welcome Back" : "Join RickshawGo";
+            document.getElementById('auth-location-fields').classList.toggle('hidden', isLoginMode);
+        };
+
+        window.handleAuth = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            showLoader(true);
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    const dist = document.getElementById('reg-district').value;
+                    const pin = document.getElementById('reg-pincode').value;
+                    if(!dist || !pin) throw new Error("Please select District and Pincode");
+
+                    const cred = await createUserWithEmailAndPassword(auth, email, password);
+                    await setDoc(doc(db, "users", cred.user.uid), { 
+                        email, role: currentRole, name: "User", district: dist, pincode: pin 
+                    });
+                }
+            } catch (err) { await showCustomAlert(err.message, "Error"); showLoader(false); }
+        };
+
+        window.handleGoogleSignIn = async () => {
+            showLoader(true);
+            try {
+                const provider = new GoogleAuthProvider();
+                const res = await signInWithPopup(auth, provider);
+                const userDoc = await getDoc(doc(db, "users", res.user.uid));
+                if(!userDoc.exists()) {
+                    await setDoc(doc(db, "users", res.user.uid), { email: res.user.email, role: currentRole, name: res.user.displayName });
+                }
+            } catch(err) { await showCustomAlert(err.message, "Error"); showLoader(false); }
+        };
+
+        window.logoutUser = () => signOut(auth);
+
+        window.saveUserLocation = async () => {
+            const dist = document.getElementById('setup-district').value;
+            const pin = document.getElementById('setup-pincode').value;
+            if(!dist || !pin) return alert("Please select both");
+            
+            showLoader(true);
+            try {
+                await updateDoc(doc(db, "users", auth.currentUser.uid), { district: dist, pincode: pin });
+                document.getElementById('locationSetupModal').classList.remove('active');
+            } catch(e) { alert(e.message); } finally { showLoader(false); }
+        }
+
+        // --- AUTH OBSERVER ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+                    if(docSnap.exists()) {
+                        const data = docSnap.data();
+                        
+                        if(!data.district || !data.pincode) {
+                            showLoader(false);
+                            document.getElementById('authScreen').classList.add('hidden');
+                            document.getElementById('locationSetupModal').classList.add('active');
+                            return;
+                        }
+                        
+                        currentRole = data.role;
+                        userDistrict = data.district;
+                        userPincode = data.pincode;
+
+                        const userName = data.name || user.displayName || "User";
+                        document.getElementById('drawer-user-name').innerText = userName;
+                        document.getElementById('drawer-user-email').innerText = user.email;
+                        document.getElementById('drawer-user-loc').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${data.pincode}`;
+                        
+                        const img = data.profilePic || "https://via.placeholder.com/100?text=User";
+                        document.getElementById('drawer-profile-img').src = img;
+                        
+                        document.getElementById('settings-preview-img').src = img;
+                        document.getElementById('settings-email').innerText = user.email;
+                        document.getElementById('settings-name-input').value = userName;
+                        
+                        const setDist = document.getElementById('set-district');
+                        setDist.value = data.district;
+                        if(data.district) {
+                            updatePincodes('set');
+                            document.getElementById('set-pincode').value = data.pincode;
+                        }
+
+                        const locText = `<i class="fas fa-map-marker-alt"></i> ${data.pincode}`;
+                        document.getElementById('driver-loc-display').innerHTML = locText;
+                        document.getElementById('passenger-loc-display').innerHTML = locText;
+
+                        document.getElementById('authScreen').classList.add('hidden');
+                        document.getElementById('locationSetupModal').classList.remove('active');
+
+                        if (data.role === 'driver') {
+                            document.getElementById('driverScreen').classList.remove('hidden');
+                            switchDriverTab('home'); 
+                        } else {
+                            document.getElementById('passengerScreen').classList.remove('hidden');
+                            subscribeToTrips(); 
+                        }
+                    }
+                });
+                showLoader(false);
+            } else {
+                document.getElementById('authScreen').classList.remove('hidden');
+                document.getElementById('passengerScreen').classList.add('hidden');
+                document.getElementById('driverScreen').classList.add('hidden');
+                document.getElementById('locationSetupModal').classList.remove('active');
+                showLoader(false);
+            }
+        });
+
+        // --- CUSTOM ALERT ---
+        window.showCustomAlert = (message, title = "Alert") => {
+            return new Promise((resolve) => {
+                document.getElementById('dialog-title').innerText = title;
+                document.getElementById('dialog-msg').innerText = message;
+                document.getElementById('dialog-btn-cancel').style.display = 'none';
+                document.getElementById('dialog-btn-confirm').innerText = "OK";
+                const overlay = document.getElementById('customDialog');
+                overlay.classList.add('active');
+                const handleOk = () => {
+                    overlay.classList.remove('active');
+                    document.getElementById('dialog-btn-confirm').removeEventListener('click', handleOk);
+                    resolve();
+                };
+                document.getElementById('dialog-btn-confirm').addEventListener('click', handleOk);
+            });
+        };
+
+        window.showCustomConfirm = (message, title = "Confirm") => {
+            return new Promise((resolve) => {
+                document.getElementById('dialog-title').innerText = title;
+                document.getElementById('dialog-msg').innerText = message;
+                document.getElementById('dialog-btn-cancel').style.display = 'block';
+                document.getElementById('dialog-btn-confirm').innerText = "Yes";
+                const overlay = document.getElementById('customDialog');
+                overlay.classList.add('active');
+                const handleYes = () => { overlay.classList.remove('active'); cleanup(); resolve(true); };
+                const handleNo = () => { overlay.classList.remove('active'); cleanup(); resolve(false); };
+                function cleanup() {
+                    document.getElementById('dialog-btn-confirm').removeEventListener('click', handleYes);
+                    document.getElementById('dialog-btn-cancel').removeEventListener('click', handleNo);
+                }
+                document.getElementById('dialog-btn-confirm').addEventListener('click', handleYes);
+                document.getElementById('dialog-btn-cancel').addEventListener('click', handleNo);
+            });
+        };
+
+        // --- NEW: GENERIC COMPRESSION LOGIC (TARGET 50KB) ---
+        async function compressImage(file, maxSizeKB = 50) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Start with a reasonable max width
+                        let width = img.width;
+                        let height = img.height;
+                        const MAX_WIDTH = 800; // Resize large images
+                        
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Iteratively reduce quality until size is met
+                        let quality = 0.7;
+                        let base64 = canvas.toDataURL('image/jpeg', quality);
+                        
+                        // 50KB ~= 68000 base64 characters (since base64 is ~1.33x larger)
+                        const maxChars = maxSizeKB * 1024 * 1.33; 
+
+                        while (base64.length > maxChars && quality > 0.1) {
+                            quality -= 0.1;
+                            base64 = canvas.toDataURL('image/jpeg', quality);
+                        }
+                        
+                        resolve(base64);
+                    };
+                };
+            });
+        }
+
+        // --- IMAGE HANDLING HANDLER ---
+        window.handleCompressedUpload = async (e, type) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Compress
+            const compressedBase64 = await compressImage(file, 50); // Target 50KB
+
+            if (type === 'profile') {
+                tempProfileBase64 = compressedBase64;
+                document.getElementById('settings-preview-img').src = compressedBase64;
+            } else if (type === 'vehicle') {
+                tempVehicleBase64 = compressedBase64;
+                const prev = document.getElementById('d-vehicle-preview');
+                prev.src = compressedBase64;
+                prev.classList.remove('hidden');
+                document.querySelector('.vehicle-upload-label').classList.add('hidden'); // Hide label
+            }
+        };
+
+        window.saveProfileSettings = async () => {
+            const newName = document.getElementById('settings-name-input').value;
+            const newDist = document.getElementById('set-district').value;
+            const newPin = document.getElementById('set-pincode').value;
+
+            if(!newName) { await showCustomAlert("Name cannot be empty"); return; }
+            if(!newDist || !newPin) { await showCustomAlert("Please select valid District and Pincode"); return; }
+
+            showLoader(true);
+            try {
+                const updateData = { name: newName, district: newDist, pincode: newPin };
+                if (tempProfileBase64) updateData.profilePic = tempProfileBase64;
+                
+                await updateDoc(doc(db, "users", auth.currentUser.uid), updateData);
+                
+                userDistrict = newDist;
+                userPincode = newPin;
+
+                await showCustomAlert("Profile & Location Updated!", "Success");
+                tempProfileBase64 = null;
+                
+                if(currentRole === 'passenger') subscribeToTrips();
+
+            } catch (err) { await showCustomAlert(err.message, "Error"); } finally { showLoader(false); }
+        };
+
+        // --- UI NAV ---
+        window.openSettingsScreen = () => document.getElementById('settingsScreen').classList.add('active');
+        window.closeSettingsScreen = () => document.getElementById('settingsScreen').classList.remove('active');
+
+        let drvHomeUnsub = null;
+        let drvBookingUnsub = null;
+
+        window.switchDriverTab = (tabName) => {
+            document.querySelectorAll('.bottom-nav .nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`nav-d-${tabName}`).classList.add('active');
+            document.getElementById('drv-home').classList.add('hidden');
+            document.getElementById('drv-passengers').classList.add('hidden');
+            if (tabName === 'home') {
+                document.getElementById('drv-home').classList.remove('hidden');
+                loadDriverHome();
+            } else if (tabName === 'passengers') {
+                document.getElementById('drv-passengers').classList.remove('hidden');
+                loadDriverBookings();
+            }
+        };
+
+        // --- DRIVER TRIP LOGIC ---
+        window.openAddTripModal = (data = null) => {
+            tempVehicleBase64 = null; // Reset image
+            const preview = document.getElementById('d-vehicle-preview');
+            const label = document.querySelector('.vehicle-upload-label');
+
+            if(data) {
+                document.getElementById('modal-title').innerText = "Edit Trip Details";
+                document.getElementById('modal-btn-text').innerText = "UPDATE";
+                document.getElementById('d-trip-id').value = data.id;
+                document.getElementById('d-phone').value = data.driverPhone;
+                document.getElementById('d-number').value = data.vehicleNumber;
+                document.getElementById('d-location').value = data.location;
+                document.getElementById('d-price').value = (data.price === "Negotiable" ? "" : data.price);
+                document.getElementById('d-price-type').value = data.priceType || "fixed";
+                
+                // Show existing vehicle image if available
+                if (data.vehiclePic) {
+                    preview.src = data.vehiclePic;
+                    preview.classList.remove('hidden');
+                    label.classList.add('hidden');
+                    tempVehicleBase64 = data.vehiclePic; // Keep existing unless changed
+                } else {
+                    preview.classList.add('hidden');
+                    preview.src = "";
+                    label.classList.remove('hidden');
+                }
+
+            } else {
+                document.getElementById('modal-title').innerText = "Publish New Trip";
+                document.getElementById('modal-btn-text').innerText = "PUBLISH";
+                document.getElementById('d-trip-id').value = "";
+                document.getElementById('d-location').value = "";
+                document.getElementById('d-price').value = "";
+                
+                // Reset Image UI
+                preview.classList.add('hidden');
+                preview.src = "";
+                label.classList.remove('hidden');
+            }
+            document.getElementById('addTripModal').classList.add('active');
+        };
+
+        window.closeAddTripModal = () => document.getElementById('addTripModal').classList.remove('active');
+
+        window.publishDriverTrip = async (e) => {
+            e.preventDefault();
+            const tripId = document.getElementById('d-trip-id').value;
+            const currentName = document.getElementById('settings-name-input').value || "Driver";
+            const phone = document.getElementById('d-phone').value;
+            const number = document.getElementById('d-number').value;
+            const loc = document.getElementById('d-location').value;
+            let price = document.getElementById('d-price').value;
+            const priceType = document.getElementById('d-price-type').value; 
+            if (!price) { price = ""; }
+
+            if(!userDistrict || !userPincode) return alert("Error: User location undefined.");
+
+            showLoader(true);
+            try {
+                const tripData = {
+                    driverPhone: phone,
+                    vehicleNumber: number,
+                    location: loc,
+                    price: price,
+                    priceType: priceType,
+                    district: userDistrict,
+                    pincode: userPincode
+                };
+
+                // Add vehicle pic if uploaded/exists
+                if (tempVehicleBase64) {
+                    tripData.vehiclePic = tempVehicleBase64;
+                }
+
+                if(tripId) {
+                    await updateDoc(doc(db, "trips", tripId), tripData);
+                    await showCustomAlert("Trip Updated!", "Success");
+                } else {
+                    tripData.driverId = auth.currentUser.uid;
+                    tripData.driverName = currentName;
+                    tripData.status = 'active';
+                    tripData.createdAt = Date.now();
+                    await addDoc(collection(db, "trips"), tripData);
+                    await showCustomAlert("Trip Published!", "Success");
+                }
+                closeAddTripModal();
+            } catch (err) { await showCustomAlert(err.message, "Error"); } finally { showLoader(false); }
+        };
+
+        window.triggerEdit = (elementId) => {
+            const el = document.getElementById(elementId);
+            if(el && el.tripData) openAddTripModal(el.tripData);
+        };
+
+        function loadDriverHome() {
+            const container = document.getElementById('drv-home-list');
+            container.innerHTML = '<div style="text-align:center;"><div class="spinner"></div></div>';
+            if (drvHomeUnsub) drvHomeUnsub();
+
+            const q = query(collection(db, "trips"), where("driverId", "==", auth.currentUser.uid));
+            drvHomeUnsub = onSnapshot(q, (snapshot) => {
+                container.innerHTML = '';
+                if(snapshot.empty) { container.innerHTML = '<p style="text-align:center;color:grey;margin-top:20px;">No trips posted. Tap + to add one.</p>'; return; }
+                
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const badgeColor = data.status === 'active' ? '#e3f2fd' : '#d4edda';
+                    const badgeText = data.status === 'active' ? '#0d47a1' : '#155724';
+                    const priceDisplay = formatPrice(data.price, data.priceType);
+                    const cardId = `trip-card-${docSnap.id}`;
+
+                    container.innerHTML += `
+                        <div id="${cardId}" class="trip-layout-card" style="border-left: 5px solid ${data.status === 'active' ? 'orange' : 'green'};">
+                            <div class="trip-header">
+                                <div><div class="trip-name">${data.location}</div><div class="trip-vehicle">${data.vehicleNumber}</div></div>
+                                <div style="text-align:right;">
+                                    <div class="trip-amount">${priceDisplay}</div>
+                                    <span style="background:${badgeColor}; color:${badgeText}; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">${data.status.toUpperCase()}</span>
+                                </div>
+                            </div>
+                            <div style="font-size:11px; color:grey;">Posted: ${new Date(data.createdAt).toLocaleDateString()}</div>
+                            ${data.status === 'active' ? `
+                            <div style="display:flex; gap:10px; margin-top:10px;">
+                                <button class="action-btn" style="flex:1; padding:8px; background:#6c757d; border-radius:5px; font-size:12px;" onclick='triggerEdit("${cardId}")'><i class="fas fa-edit"></i> Edit</button>
+                                <button class="action-btn" style="flex:1; padding:8px; background:var(--danger); border-radius:5px; font-size:12px;" onclick="deleteTrip('${docSnap.id}')"><i class="fas fa-trash"></i> Delete</button>
+                            </div>` : ''}
+                        </div>`;
+                    setTimeout(() => { const el = document.getElementById(cardId); if(el) el.tripData = { id: docSnap.id, ...data }; }, 0);
+                });
+            });
+        }
+
+        function loadDriverBookings() {
+            const container = document.getElementById('drv-booking-list');
+            container.innerHTML = '<div style="text-align:center;"><div class="spinner"></div></div>';
+            if (drvBookingUnsub) drvBookingUnsub();
+
+            const q = query(collection(db, "trips"), where("driverId", "==", auth.currentUser.uid), where("status", "==", "booked"));
+            drvBookingUnsub = onSnapshot(q, (snapshot) => {
+                container.innerHTML = '';
+                if(snapshot.empty) { container.innerHTML = '<p style="text-align:center;color:grey; margin-top:20px;">No active passengers yet.</p>'; return; }
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const priceDisplay = formatPrice(data.price, data.priceType);
+                    container.innerHTML += `
+                        <div class="trip-layout-card" style="border-left: 5px solid green;">
+                            <div class="trip-header">
+                                <div class="trip-driver-box">
+                                    <div class="trip-avatar" style="background:var(--success); color:white;"><i class="fas fa-user"></i></div>
+                                    <div><div class="trip-name">Booked!</div><div class="trip-vehicle">${data.location}</div></div>
+                                </div>
+                                <div class="trip-price"><div class="trip-amount">${priceDisplay}</div></div>
+                            </div>
+                            <div style="margin-top:10px; padding-top:10px; border-top:1px solid #eee;">
+                                ${data.passengerLocation ? `<a href="${data.passengerLocation}" target="_blank" style="display:block; text-align:center; padding:10px; background:var(--dark); color:var(--primary); text-decoration:none; border-radius:8px; font-weight:bold; margin-bottom:10px;"><i class="fas fa-map-marked-alt"></i> Navigate</a>` : '<div style="font-size:12px;color:red;">Location not shared</div>'}
+                                <button onclick="window.showCustomAlert('Trip Completed!', 'Success')" style="width:100%; padding:8px; border:1px solid green; background:#e8f5e9; color:green; border-radius:5px;">Complete</button>
+                            </div>
+                        </div>`;
+                });
+            });
+        }
+
+        function formatPrice(price, type) {
+            if (!price || price === "Negotiable") return "";
+            if (type === 'per_km') return `₹${price} / km`;
+            if (type === 'per_min') return `₹${price} / min`;
+            return `₹${price}`;
+        }
+
+        // --- PASSENGER TRIP LOGIC (FILTERED) ---
+        let unsubscribeTrips = null;
+        function subscribeToTrips() {
+            if(unsubscribeTrips) unsubscribeTrips();
+            if(!userDistrict || !userPincode) return;
+
+            const q = query(collection(db, "trips"), 
+                where("status", "==", "active"),
+                where("district", "==", userDistrict),
+                where("pincode", "==", userPincode)
+            );
+
+            unsubscribeTrips = onSnapshot(q, (snapshot) => {
+                const container = document.getElementById('trip-list-container');
+                container.innerHTML = '';
+                if(snapshot.empty) { container.innerHTML = `<p style="text-align:center; margin-top:20px; color:grey;">No drivers in ${userPincode}.</p>`; return; }
+                
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const timeAgo = getTimeAgo(data.createdAt);
+                    const priceDisplay = formatPrice(data.price, data.priceType);
+                    const estLabel = priceDisplay ? (data.priceType ? data.priceType.replace('_', ' ').toUpperCase() : 'FIXED') : '';
+                    const dataString = JSON.stringify({id:docSnap.id, ...data}).replace(/"/g, "&quot;");
+                    
+                    container.innerHTML += `
+                        <div class="trip-layout-card" onclick="openDetailsFromObj(${dataString})">
+                            <div class="trip-header">
+                                <div class="trip-driver-box">
+                                    <div class="trip-avatar"><i class="fas fa-taxi"></i></div>
+                                    <div><div class="trip-name">${data.driverName}</div><div class="trip-vehicle">${data.vehicleNumber}</div></div>
+                                </div>
+                                <div class="trip-price"><div class="trip-amount">${priceDisplay}</div><div class="trip-est">${estLabel}</div></div>
+                            </div>
+                            <div class="trip-route"><i class="fas fa-circle route-icon"></i><div class="route-text">Current: ${data.location}</div></div>
+                            <div class="trip-footer"><div class="trip-time"><i class="far fa-clock"></i> Posted ${timeAgo}</div><div style="color:var(--primary-dark); font-weight:bold;">Tap to Book</div></div>
+                        </div>`;
+                });
+            });
+        }
+
+        function getTimeAgo(timestamp) {
+            const seconds = Math.floor((Date.now() - timestamp) / 1000);
+            if (seconds < 60) return "Just now";
+            const minutes = Math.floor(seconds / 60);
+            return minutes < 60 ? `${minutes}m ago` : `${Math.floor(minutes/60)}h ago`;
+        }
+
+        // --- DETAILS & BOOKING ---
+        window.openDetailsFromObj = async (data) => {
+            selectedTripData = data;
+            document.getElementById('dt-name').innerText = data.driverName;
+            document.getElementById('dt-price').innerText = formatPrice(data.price, data.priceType);
+            document.getElementById('dt-loc').innerText = data.location;
+            document.getElementById('dt-vehicle').innerText = data.vehicleNumber;
+            
+            // Set Vehicle Image as Top Background
+            const topArea = document.getElementById('details-top-img');
+            if (data.vehiclePic) {
+                topArea.style.backgroundImage = `url('${data.vehiclePic}')`;
+            } else {
+                // Default Map Image
+                topArea.style.backgroundImage = `url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/OpenStreetMap_Logo_2011.svg/1200px-OpenStreetMap_Logo_2011.svg.png')`;
+            }
+
+            const driverImgElem = document.getElementById('dt-driver-img');
+            driverImgElem.src = "https://via.placeholder.com/100?text=Loading";
+            try {
+                const driverDoc = await getDoc(doc(db, "users", data.driverId));
+                if(driverDoc.exists() && driverDoc.data().profilePic) driverImgElem.src = driverDoc.data().profilePic;
+                else driverImgElem.src = "https://via.placeholder.com/100?text=No+Img";
+            } catch(e) {}
+
+            const actionArea = document.getElementById('details-action-area');
+            const isMyBooking = (data.status === 'booked' && data.passengerId === auth.currentUser.uid);
+            const callBtnHtml = `<a href="${data.driverPhone ? 'tel:'+data.driverPhone : '#'}" class="btn-call"><i class="fas fa-phone-alt"></i></a>`;
+
+            if (isMyBooking) actionArea.innerHTML = `${callBtnHtml}<button class="btn-cancel" onclick="cancelBooking('${data.id}')">CANCEL <i class="fas fa-times"></i></button>`;
+            else actionArea.innerHTML = `${callBtnHtml}<button class="btn-book" onclick="bookTripWithLocation()">SHARE LOC & BOOK <i class="fas fa-paper-plane"></i></button>`;
+            document.getElementById('detailsScreen').classList.add('active');
+        };
+
+        window.bookTripWithLocation = async () => {
+            if(!selectedTripData) return;
+            const btn = document.querySelector('.btn-book');
+            btn.innerHTML = 'Booking...';
+            if(navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const mapLink = `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
+                    performBooking(mapLink);
+                }, () => { showCustomAlert("Location denied. Booking anyway."); performBooking(null); });
+            } else { performBooking(null); }
+        };
+
+        async function performBooking(locLink) {
+            try {
+                await updateDoc(doc(db, "trips", selectedTripData.id), {
+                    status: 'booked',
+                    passengerId: auth.currentUser.uid,
+                    passengerLocation: locLink, 
+                    bookedAt: Date.now()
+                });
+                await showCustomAlert("Booking Confirmed!", "Success");
+                closeDetails();
+                openHistoryScreen();
+            } catch(err) { await showCustomAlert(err.message, "Error"); }
+        }
+
+        window.cancelBooking = async (tripId) => {
+            if(!await showCustomConfirm("Are you sure you want to cancel?")) return;
+            showLoader(true);
+            try {
+                await updateDoc(doc(db, "trips", tripId), {
+                    status: 'active',
+                    passengerId: deleteField(),
+                    passengerLocation: deleteField(),
+                    bookedAt: deleteField()
+                });
+                await showCustomAlert("Booking Cancelled.");
+                closeDetails();
+                openHistoryScreen();
+            } catch(err) { await showCustomAlert(err.message, "Error"); } finally { showLoader(false); }
+        };
+
+        window.openHistoryScreen = async () => {
+            document.getElementById('historyScreen').classList.add('active');
+            const container = document.getElementById('history-list-container');
+            container.innerHTML = '<div style="text-align:center; margin-top:20px;"><div class="spinner"></div></div>';
+            const q = query(collection(db, "trips"), where("passengerId", "==", auth.currentUser.uid));
+            onSnapshot(q, (snapshot) => {
+                container.innerHTML = '';
+                if(snapshot.empty) { container.innerHTML = '<p style="text-align:center; margin-top:20px; color:grey;">No history found.</p>'; return; }
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const priceDisplay = formatPrice(data.price, data.priceType);
+                    const dataString = JSON.stringify({id:docSnap.id, ...data}).replace(/"/g, "&quot;");
+                    container.innerHTML += `
+                        <div class="trip-layout-card">
+                            <div class="trip-header">
+                                <div><div class="trip-name">${data.location}</div><div class="trip-vehicle">${data.driverName}</div></div>
+                                <div style="text-align:right;"><div class="trip-amount">${priceDisplay}</div></div>
+                            </div>
+                            <div style="margin-top:10px; display:flex; gap:10px;">
+                                <button onclick="openDetailsFromObj(${dataString})" style="flex:1; padding:8px; border:1px solid #ddd; background:white; border-radius:5px;">View/Call</button>
+                                <button onclick="cancelBooking('${docSnap.id}')" style="flex:1; padding:8px; background:#dc3545; color:white; border:none; border-radius:5px;">Cancel</button>
+                            </div>
+                        </div>`;
+                });
+            });
+        };
+
+        window.closeHistoryScreen = () => document.getElementById('historyScreen').classList.remove('active');
+        window.deleteTrip = async (id) => { if(await showCustomConfirm("Delete this trip?")) await deleteDoc(doc(db, "trips", id)); };
+
+        // UTILS
+        window.handleDrawerHistoryClick = () => { closeDrawer(); if(currentRole === 'driver') switchDriverTab('home'); else openHistoryScreen(); }
+        window.openDrawer = () => { document.getElementById('navDrawer').classList.add('active'); document.getElementById('drawerOverlay').classList.add('active'); }
+        window.closeDrawer = () => { document.getElementById('navDrawer').classList.remove('active'); document.getElementById('drawerOverlay').classList.remove('active'); }
+        window.closeDetails = () => { document.getElementById('detailsScreen').classList.remove('active'); }
+        function showLoader(show) { document.getElementById('loader').classList.toggle('hidden', !show); }
+    </script>
+</body>
+</html>
